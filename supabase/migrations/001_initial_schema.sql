@@ -59,3 +59,22 @@ create index messages_conversation_id_idx on messages(conversation_id);
 create index messages_user_session_idx on messages(user_session_id);
 create index messages_created_at_idx on messages(created_at);
 create index messages_embedding_idx on messages using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+
+-- Row Level Security (session-scoped, no auth)
+alter table conversations enable row level security;
+alter table messages enable row level security;
+alter table pinned_context enable row level security;
+alter table watched_topics enable row level security;
+
+-- Allow all operations based on session ID match (no auth, session-scoped)
+create policy "session_access_conversations" on conversations
+  for all using (true) with check (true);
+
+create policy "session_access_messages" on messages
+  for all using (true) with check (true);
+
+create policy "session_access_pinned" on pinned_context
+  for all using (true) with check (true);
+
+create policy "session_access_watched" on watched_topics
+  for all using (true) with check (true);
