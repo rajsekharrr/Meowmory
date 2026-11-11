@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens ─────────────────────────────────────────────────── */
 :root {
   --bg:          #F7F7F5;
   --bg-subtle:   #EFEDE9;
@@ -14,9 +15,58 @@
   --removed:     #9B1D1D;
 }
 
+/* ── Base ───────────────────────────────────────────────────────────── */
 body {
   background-color: var(--bg);
   color: var(--text);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ── Selection ──────────────────────────────────────────────────────── */
+::selection {
+  background-color: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--text);
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-subtle);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ── CatLoader keyframes ────────────────────────────────────────────── */
+@keyframes paw-appear {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.paw-1 { opacity: 0; animation: paw-appear 0.3s ease forwards; animation-delay: 0ms;   }
+.paw-2 { opacity: 0; animation: paw-appear 0.3s ease forwards; animation-delay: 300ms; }
+.paw-3 { opacity: 0; animation: paw-appear 0.3s ease forwards; animation-delay: 600ms; }
+
+/* ── Toast slide-in ─────────────────────────────────────────────────── */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(100%); }
+}
+
+.toast-enter { animation: toast-in  0.25s ease forwards; }
+.toast-exit  { animation: toast-out 0.2s  ease forwards; }
