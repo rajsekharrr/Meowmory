@@ -34,6 +34,13 @@ function readSettings(): Settings {
   };
 }
 
+function writeSettings(s: Settings) {
+  localStorage.setItem(KEYS.apiKey, s.apiKey);
+  localStorage.setItem(KEYS.provider, s.provider);
+  localStorage.setItem(KEYS.model, s.model);
+  localStorage.setItem(KEYS.pinnedContext, s.pinnedContext);
+}
+
 /** Returns "sk-...XXXX" — last 4 chars visible, rest masked. */
 export function maskApiKey(key: string): string {
   if (!key || key.length < 8) return key;
@@ -42,41 +49,58 @@ export function maskApiKey(key: string): string {
   return `${prefix}...${last4}`;
 }
 
+// ── Module-level broadcast so all useSettings() instances stay in sync ──
+// When one hook writes settings, every other hook instance in the same tab
+// receives the update immediately (no context provider needed).
+const BROADCAST = "meowmory:settings-updated";
+
+function broadcast() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(BROADCAST));
+  }
+}
+
 export function useSettings() {
   const [settings, setSettings] = useState<Settings>(readSettings);
 
-  // Sync to localStorage whenever settings change
+  // Re-read from localStorage whenever any hook instance writes
   useEffect(() => {
-    localStorage.setItem(KEYS.apiKey, settings.apiKey);
-    localStorage.setItem(KEYS.provider, settings.provider);
-    localStorage.setItem(KEYS.model, settings.model);
-    localStorage.setItem(KEYS.pinnedContext, settings.pinnedContext);
-  }, [settings]);
+    const handler = () => setSettings(readSettings());
+    window.addEventListener(BROADCAST, handler);
+    // also sync when the user updates settings in another tab
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener(BROADCAST, handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, []);
+
+  // Write + notify all subscribers atomically
+  const commit = useCallback((next: Settings) => {
+    writeSettings(next);
+    setSettings(next);
+    broadcast();
+  }, []);
 
   const updateApiKey = useCallback((apiKey: string) => {
-    setSettings((prev) => ({ ...prev, apiKey }));
-  }, []);
+    commit({ ...readSettings(), apiKey });
+  }, [commit]);
 
   const updateProvider = useCallback((provider: Settings["provider"]) => {
-    // Auto-switch to that provider's default model
-    setSettings((prev) => ({
-      ...prev,
-      provider,
-      model: DEFAULT_MODELS[provider],
-    }));
-  }, []);
+    commit({ ...readSettings(), provider, model: DEFAULT_MODELS[provider] });
+  }, [commit]);
 
   const updateModel = useCallback((model: string) => {
-    setSettings((prev) => ({ ...prev, model }));
-  }, []);
+    commit({ ...readSettings(), model });
+  }, [commit]);
 
   const updatePinnedContext = useCallback((pinnedContext: string) => {
-    setSettings((prev) => ({ ...prev, pinnedContext }));
-  }, []);
+    commit({ ...readSettings(), pinnedContext });
+  }, [commit]);
 
   const clearApiKey = useCallback(() => {
-    setSettings((prev) => ({ ...prev, apiKey: "" }));
-  }, []);
+    commit({ ...readSettings(), apiKey: "" });
+  }, [commit]);
 
   return {
     settings,
